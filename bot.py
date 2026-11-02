@@ -1,8 +1,28 @@
 import os
 import datetime
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import telebot
 from google import genai
 from google.genai import types
+
+# ── Мини веб-сервер для Render (чтобы хостинг видел, что бот живой) ───────────
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running!")
+
+    def log_message(self, format, *args):
+        pass  # отключаем лишний спам в консоль
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
+# Запускаем фоновый веб-сервер
+threading.Thread(target=run_health_server, daemon=True).start()
 
 # ── Загрузка ключей ─────────────────────────────────────────────────────────
 def load_env(filepath=".env"):
